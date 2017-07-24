@@ -1,5 +1,7 @@
 package com.theironyard;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Scanner;
@@ -12,19 +14,38 @@ import static org.junit.Assert.*;
 public class MainTest {
     // FIELDS
     private VehicleInfo testVehicleInfo;
-    private String[] testData = {"123456789", "123456.78", "12.34","120456.78", "4.5"};
-    private String testIntStream =  testData[0];
-    private String testDoubleStream = testData[1];
-    private String testInputStream = testData[0] + "\n" + testData[1] + "\n" + testData[2] + "\n" + testData[3] +
-            "\n" + testData[4];
+    private String[] testData;
+    private String testIntStream;
+    private String testDoubleStream;
+    private String testInputStream;
     private Scanner testScanner;
-    private String prompt = "Correct Message";
+    private String prompt = "Test User Prompt";
     private static final double DELTA = 1E-9;
 
     // METHODS
+    @Before
+    public void setUp() {
+        testData = new String[5];
+        testData[0] = "123456789"; // vin
+        testData[1] = "123456.78"; // miles
+        testData[2] = "12.34"; // consumption
+        testData[3] = "120456.78"; // miles at last oil change
+        testData[4] = "4.5"; // engine size
+        testIntStream = testData[0];
+        testDoubleStream = testData[1];
+        testInputStream = testData[0] + "\n" + testData[1] + "\n" + testData[2] + "\n" + testData[3] +
+                "\n" + testData[4];;
+
+        testVehicleInfo = new VehicleInfo();
+    }
+
+    @After
+    public void tearDown() {
+        testScanner.close();
+    }
+
     @Test
     public void getVehicleInfoFromUserTest() throws Exception {
-        testVehicleInfo = new VehicleInfo();
         testScanner = new Scanner(testInputStream);
         Main.getVehicleInfoFromUser(testVehicleInfo, testScanner);
         assertEquals("Vin should be set to value from input stream", Integer.parseInt(testData[0]),
