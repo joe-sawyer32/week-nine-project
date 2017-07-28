@@ -18,7 +18,7 @@ public class TelematicsServiceTest {
     // FIELDS
     private VehicleInfo testVehicleInfo;
     private String expectedJson;
-    private final String TEST_DIRECTORY = "test-records/";
+    private final String TEST_DIRECTORY = "test/test-records/";
     private File testFile;
     private String filename;
     private ObjectMapper testMapper;
@@ -28,6 +28,9 @@ public class TelematicsServiceTest {
     // METHODS
     @Before
     public void setUp() {
+        System.out.println("TelematicsService");
+        System.out.println("-----------------------------");
+        System.out.println("Setting up method test...");
         testVehicleInfo = new VehicleInfo();
         testVehicleInfo.setVin(123456789);
         testVehicleInfo.setMiles(123456.78);
@@ -42,7 +45,8 @@ public class TelematicsServiceTest {
 
     @After
     public void tearDown() {
-
+        System.out.println("Deleting test record...");
+        testFile.deleteOnExit();
     }
 
     @Test
@@ -58,6 +62,6 @@ public class TelematicsServiceTest {
         } catch (FileNotFoundException ex) {
             System.out.printf("A file of name %s should have been created", filename);
         }
-
+        System.out.println("SUCCESS");
     }
 }
