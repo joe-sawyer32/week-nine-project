@@ -6,6 +6,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 /**
  * Created by Joe on 7/21/17.
@@ -18,8 +21,7 @@ public class TelematicsService {
     private final static String VIEW_DIRECTORY = "./resources/views/";
     private final static String DASHBOARD = VIEW_DIRECTORY + "dashboard.html";
     private final static String DASHBOARD_TEMPLATE = VIEW_DIRECTORY + "dashboard-template.html";
-    private static VehicleInfo totals;
-    private static int recordCount;
+    private static VehicleInfoAverages averages = new VehicleInfoAverages();
 
     // CONSTRUCTORS
 
@@ -30,49 +32,57 @@ public class TelematicsService {
         mapper = new ObjectMapper();
         convertToJsonFile(vehicleInfo, filepath, mapper);
         File records = new File(RECORDS_DIRECTORY);
-        totals = new VehicleInfo();
-        updateDashboard(totals, records);
+        updateDashboard(averages, records, mapper);
     }
 
-    public static void updateDashboard(VehicleInfo totals, File records) {
-        System.out.print("Grabbing all vehicle records.");
-        for (File f : records.listFiles()) {
-            if (f.getName().endsWith(".json")) {
-                System.out.print(".");
-                recordCount++;
-                VehicleInfo vehicleRecord = covertJsonFileToObject(totals, f);
-                if (vehicleRecord != null) {
-                    try (FileWriter fileWriter = new FileWriter(DASHBOARD)) {
-                        fileWriter.write(vehicleRecord.getVin());
-                    } catch (IOException ex) {
-                        System.out.println("Unable to write to file");
-                        ex.printStackTrace();
-                    }
-                }
-            }
+    public static void updateDashboard(VehicleInfoAverages averages, File records, ObjectMapper mapper) {
+        List<VehicleInfo> vehicleRecords = grabVehicleRecords(averages, records);
+        for (VehicleInfo vi : vehicleRecords) {
+            System.out.println("VEHICLE:");
+            System.out.println(vi.getVin());
+            System.out.println(vi.getMiles());
+            System.out.println(vi.getGasGallonsConsumed());
+            System.out.println(vi.getMilesAtLastOilChange());
+            System.out.println(vi.getEngineLiters());
         }
     }
 
-    public static VehicleInfo covertJsonFileToObject(VehicleInfo totals, File json) {
-        VehicleInfo vi = new VehicleInfo();
-            try {
-                vi = mapper.readValue(json, VehicleInfo.class);
-                updateTotalsObject(totals, vi);
-            } catch (JsonProcessingException ex) {
-                System.out.println("\nUnable to convert from JSON");
-                ex.printStackTrace();
-            } catch (IOException ex) {
-                System.out.println("\nUnsuccessful read from file");
-                ex.printStackTrace();
+    private static List<VehicleInfo> grabVehicleRecords(VehicleInfoAverages averages, File records) {
+        System.out.print("Grabbing all vehicle records.");
+        List<VehicleInfo> vehicleRecords = new ArrayList<>();
+        for (File f : records.listFiles()) {
+            if (f.getName().endsWith(".json")) {
+                System.out.print(".");
+                VehicleInfo vehicleRecord = convertJsonFileToObject(f);
+                averages.setVehicleCount(averages.getVehicleCount() + 1);
+                updateAveragesObject(averages, vehicleRecord);
+                vehicleRecords.add(vehicleRecord);
             }
+        }
+        return vehicleRecords;
+    }
+
+    public static VehicleInfo convertJsonFileToObject(File json) {
+        VehicleInfo vi = new VehicleInfo();
+        try {
+            vi = mapper.readValue(json, VehicleInfo.class);
+        } catch (JsonProcessingException ex) {
+            System.out.println("\nUnable to convert from JSON");
+            ex.printStackTrace();
+        } catch (IOException ex) {
+            System.out.println("\nUnsuccessful read from file");
+            ex.printStackTrace();
+        }
         return vi;
     }
 
-    public static void updateTotalsObject(VehicleInfo totals, VehicleInfo vi) {
-        totals.setMiles(vi.getMiles() + totals.getMiles());
-        totals.setGasGallonsConsumed(vi.getGasGallonsConsumed() + totals.getGasGallonsConsumed());
-        totals.setMilesAtLastOilChange(vi.getMilesAtLastOilChange() + totals.getMilesAtLastOilChange());
-        totals.setEngineLiters(vi.getEngineLiters() + totals.getEngineLiters());
+    public static void updateAveragesObject(VehicleInfoAverages averages, VehicleInfo vi) {
+        averages.setMiles((vi.getMiles() + averages.getMiles()) / averages.getVehicleCount());
+        averages.setGasGallonsConsumed((vi.getGasGallonsConsumed() + averages.getGasGallonsConsumed()) /
+                averages.getVehicleCount());
+        averages.setMilesAtLastOilChange((vi.getMilesAtLastOilChange() + averages.getMilesAtLastOilChange()) /
+                averages.getVehicleCount());
+        averages.setEngineLiters((vi.getEngineLiters() + averages.getEngineLiters()) / averages.getVehicleCount());
         System.out.print(".");
     }
 
