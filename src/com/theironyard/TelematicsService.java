@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,7 +16,6 @@ import java.util.Scanner;
  */
 public class TelematicsService {
     // FIELDS
-    private static File file;
     private static ObjectMapper mapper;
     private final static String RECORDS_DIRECTORY = "./vehicle-records/";
     private final static String VIEW_DIRECTORY = "./resources/views/";
@@ -32,22 +32,36 @@ public class TelematicsService {
         mapper = new ObjectMapper();
         convertToJsonFile(vehicleInfo, filepath, mapper);
         File records = new File(RECORDS_DIRECTORY);
-        updateDashboard(averages, records, mapper);
+        updateDashboard(records, mapper);
     }
 
-    public static void updateDashboard(VehicleInfoAverages averages, File records, ObjectMapper mapper) {
-        List<VehicleInfo> vehicleRecords = grabVehicleRecords(averages, records);
-        for (VehicleInfo vi : vehicleRecords) {
-            System.out.println("VEHICLE:");
-            System.out.println(vi.getVin());
-            System.out.println(vi.getMiles());
-            System.out.println(vi.getGasGallonsConsumed());
-            System.out.println(vi.getMilesAtLastOilChange());
-            System.out.println(vi.getEngineLiters());
+    public static void updateDashboard(File records, ObjectMapper mapper) {
+        List<VehicleInfo> vehicleRecords = grabVehicleRecords(records);
+        File template = new File(DASHBOARD_TEMPLATE);
+        File dashboard = new File(DASHBOARD);
+        try (Scanner scanner = new Scanner(template);
+                FileWriter fileWriter = new FileWriter(dashboard)) {
+                    while(scanner.hasNextLine()) {
+                        String line = scanner.nextLine();
+                        if (line.contains("Averages")) {
+                            fileWriter.write(line.replace("#", Integer.toString(averages.getVehicleCount())));
+                        } else {
+                            fileWriter.write(line);
+                        }
+                        if(scanner.hasNextLine()) {
+                            fileWriter.write("\n");
+                        }
+                    }
+        } catch (FileNotFoundException e) {
+            System.out.println("Unable to find file to read");
+            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("Unable to write to file");
+            e.printStackTrace();
         }
     }
 
-    private static List<VehicleInfo> grabVehicleRecords(VehicleInfoAverages averages, File records) {
+    private static List<VehicleInfo> grabVehicleRecords(File records) {
         System.out.print("Grabbing all vehicle records.");
         List<VehicleInfo> vehicleRecords = new ArrayList<>();
         for (File f : records.listFiles()) {
