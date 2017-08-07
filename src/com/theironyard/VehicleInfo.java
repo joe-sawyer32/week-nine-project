@@ -1,5 +1,7 @@
 package com.theironyard;
 
+import java.time.LocalDateTime;
+
 /**
  * Created by Joe on 7/21/17.
  */
@@ -12,6 +14,7 @@ public class VehicleInfo {
     private double gasGallonsConsumed;
     private double milesAtLastOilChange;
     private double engineLiters;
+    private LocalDateTime timestamp;
 
     // CONSTRUCTORS
     // empty
@@ -58,6 +61,15 @@ public class VehicleInfo {
         this.engineLiters = engineLiters;
     }
 
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    // custom
     public double calculateMilesPerGallon() {
         return this.miles / this.gasGallonsConsumed;
     }

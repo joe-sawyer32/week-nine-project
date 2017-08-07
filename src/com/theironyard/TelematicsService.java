@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -16,7 +17,7 @@ import java.util.Scanner;
  */
 public class TelematicsService {
     // FIELDS
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static ObjectMapper mapper;
     private final static String RECORDS_DIRECTORY = "./vehicle-records/";
     private final static String VIEW_DIRECTORY = "./resources/views/";
     private final static String DASHBOARD = VIEW_DIRECTORY + "dashboard.html";
@@ -30,6 +31,8 @@ public class TelematicsService {
     public static void report(VehicleInfo vehicleInfo) {
         System.out.print("Creating record for vehicle.");
         File filepath = new File(RECORDS_DIRECTORY + vehicleInfo.getVin() + ".json");
+        mapper = new ObjectMapper();
+        mapper.findAndRegisterModules();
         convertToJsonFile(vehicleInfo, filepath, mapper);
         File records = new File(RECORDS_DIRECTORY);
         updateDashboard(records);
@@ -80,11 +83,12 @@ public class TelematicsService {
     private static String makeVehicleHistoryLines(List<VehicleInfo> vehicles, FileWriter fw, String line) throws IOException {
         line = line.replaceFirst("#", "%d");
         line = line.replace("#", "%.1f");
+        line = line.replace("&", "%s");
         for (int i = 0; i < vehicles.size(); i++) {
             VehicleInfo vi = vehicles.get(i);
             String formattedLine = String.format(line, vi.getVin(), vi.getMiles(),
                     vi.getGasGallonsConsumed(), vi.getMilesAtLastOilChange(), vi.getEngineLiters(),
-                    vi.calculateMilesPerGallon());
+                    vi.calculateMilesPerGallon(), vi.getTimestamp());
             if (i < vehicles.size() - 1) {
                 fw.write(formattedLine);
                 fw.write("\n\t</tr>\n\t<tr>\n");
@@ -144,6 +148,7 @@ public class TelematicsService {
     public static void convertToJsonFile(VehicleInfo vi, File f, ObjectMapper mapper) {
         try (FileWriter fileWriter = new FileWriter(f)) {
             System.out.print(".");
+            vi.setTimestamp(LocalDateTime.now());
             String json = mapper.writeValueAsString(vi);
             System.out.print(".");
             fileWriter.write(json);
