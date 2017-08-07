@@ -16,12 +16,13 @@ import java.util.Scanner;
  */
 public class TelematicsService {
     // FIELDS
-    private static ObjectMapper mapper;
+    private static ObjectMapper mapper = new ObjectMapper();
     private final static String RECORDS_DIRECTORY = "./vehicle-records/";
     private final static String VIEW_DIRECTORY = "./resources/views/";
     private final static String DASHBOARD = VIEW_DIRECTORY + "dashboard.html";
     private final static String DASHBOARD_TEMPLATE = VIEW_DIRECTORY + "dashboard-template.html";
     private static VehicleInfoAverages averages = new VehicleInfoAverages();
+    private static int templateReplace = 1;
 
     // CONSTRUCTORS
 
@@ -29,29 +30,18 @@ public class TelematicsService {
     public static void report(VehicleInfo vehicleInfo) {
         System.out.print("Creating record for vehicle.");
         File filepath = new File(RECORDS_DIRECTORY + vehicleInfo.getVin() + ".json");
-        mapper = new ObjectMapper();
         convertToJsonFile(vehicleInfo, filepath, mapper);
         File records = new File(RECORDS_DIRECTORY);
-        updateDashboard(records, mapper);
+        updateDashboard(records);
     }
 
-    public static void updateDashboard(File records, ObjectMapper mapper) {
+    private static void updateDashboard(File records) {
         List<VehicleInfo> vehicleRecords = grabVehicleRecords(records);
         File template = new File(DASHBOARD_TEMPLATE);
         File dashboard = new File(DASHBOARD);
         try (Scanner scanner = new Scanner(template);
-                FileWriter fileWriter = new FileWriter(dashboard)) {
-                    while(scanner.hasNextLine()) {
-                        String line = scanner.nextLine();
-                        if (line.contains("Averages")) {
-                            fileWriter.write(line.replace("#", Integer.toString(averages.getVehicleCount())));
-                        } else {
-                            fileWriter.write(line);
-                        }
-                        if(scanner.hasNextLine()) {
-                            fileWriter.write("\n");
-                        }
-                    }
+             FileWriter fileWriter = new FileWriter(dashboard)) {
+            writeToDashboard(vehicleRecords, scanner, fileWriter);
         } catch (FileNotFoundException e) {
             System.out.println("Unable to find file to read");
             e.printStackTrace();
@@ -59,6 +49,56 @@ public class TelematicsService {
             System.out.println("Unable to write to file");
             e.printStackTrace();
         }
+    }
+
+    private static void writeToDashboard(List<VehicleInfo> records, Scanner scanner, FileWriter fileWriter) throws IOException {
+        while (scanner.hasNextLine()) {
+            String line = scanner.nextLine();
+            if (line.contains("#")) {
+                switch (templateReplace) {
+                    case 1:
+                        line = line.replace("#", Integer.toString(averages.getVehicleCount()));
+                        break;
+                    case 2:
+                        line = makeVehicleAveragesLine(line);
+                        break;
+                    case 3:
+                        line = makeVehicleHistoryLines(records, fileWriter, line);
+                        break;
+                    default:
+                        System.out.println("Something went wrong...");
+                }
+                templateReplace++;
+            }
+            fileWriter.write(line);
+            if (scanner.hasNextLine()) {
+                fileWriter.write("\n");
+            }
+        }
+    }
+
+    private static String makeVehicleHistoryLines(List<VehicleInfo> vehicles, FileWriter fw, String line) throws IOException {
+        line = line.replaceFirst("#", "%d");
+        line = line.replace("#", "%.1f");
+        for (int i = 0; i < vehicles.size(); i++) {
+            VehicleInfo vi = vehicles.get(i);
+            String formattedLine = String.format(line, vi.getVin(), vi.getMiles(),
+                    vi.getGasGallonsConsumed(), vi.getMilesAtLastOilChange(), vi.getEngineLiters());
+            if (i < vehicles.size() - 1) {
+                fw.write(formattedLine);
+                fw.write("\n\t</tr>\n\t<tr>\n");
+            } else {
+                line = formattedLine;
+            }
+        }
+        return line;
+    }
+
+    private static String makeVehicleAveragesLine(String line) {
+        line = line.replace("#", "%.1f");
+        line = String.format(line, averages.getMiles(), averages.getGasGallonsConsumed(),
+                averages.getMilesAtLastOilChange(), averages.getEngineLiters());
+        return line;
     }
 
     private static List<VehicleInfo> grabVehicleRecords(File records) {
@@ -76,7 +116,7 @@ public class TelematicsService {
         return vehicleRecords;
     }
 
-    public static VehicleInfo convertJsonFileToObject(File json) {
+    private static VehicleInfo convertJsonFileToObject(File json) {
         VehicleInfo vi = new VehicleInfo();
         try {
             vi = mapper.readValue(json, VehicleInfo.class);
@@ -90,7 +130,7 @@ public class TelematicsService {
         return vi;
     }
 
-    public static void updateAveragesObject(VehicleInfoAverages averages, VehicleInfo vi) {
+    private static void updateAveragesObject(VehicleInfoAverages averages, VehicleInfo vi) {
         averages.setMiles((vi.getMiles() + averages.getMiles()) / averages.getVehicleCount());
         averages.setGasGallonsConsumed((vi.getGasGallonsConsumed() + averages.getGasGallonsConsumed()) /
                 averages.getVehicleCount());
@@ -100,7 +140,7 @@ public class TelematicsService {
         System.out.print(".");
     }
 
-    public static void convertToJsonFile(VehicleInfo vi, File f, ObjectMapper mapper) {
+    private static void convertToJsonFile(VehicleInfo vi, File f, ObjectMapper mapper) {
         try (FileWriter fileWriter = new FileWriter(f)) {
             System.out.print(".");
             String json = mapper.writeValueAsString(vi);
