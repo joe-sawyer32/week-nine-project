@@ -57,4 +57,8 @@ public class VehicleInfo {
     public void setEngineLiters(double engineLiters) {
         this.engineLiters = engineLiters;
     }
+
+    public double calculateMilesPerGallon() {
+        return this.miles / this.gasGallonsConsumed;
+    }
 }

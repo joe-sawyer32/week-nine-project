@@ -83,7 +83,8 @@ public class TelematicsService {
         for (int i = 0; i < vehicles.size(); i++) {
             VehicleInfo vi = vehicles.get(i);
             String formattedLine = String.format(line, vi.getVin(), vi.getMiles(),
-                    vi.getGasGallonsConsumed(), vi.getMilesAtLastOilChange(), vi.getEngineLiters());
+                    vi.getGasGallonsConsumed(), vi.getMilesAtLastOilChange(), vi.getEngineLiters(),
+                    vi.calculateMilesPerGallon());
             if (i < vehicles.size() - 1) {
                 fw.write(formattedLine);
                 fw.write("\n\t</tr>\n\t<tr>\n");
@@ -97,7 +98,7 @@ public class TelematicsService {
     private static String makeVehicleAveragesLine(String line) {
         line = line.replace("#", "%.1f");
         line = String.format(line, averages.getMiles(), averages.getGasGallonsConsumed(),
-                averages.getMilesAtLastOilChange(), averages.getEngineLiters());
+                averages.getMilesAtLastOilChange(), averages.getEngineLiters(), averages.calculateMilesPerGallon());
         return line;
     }
 
@@ -140,7 +141,7 @@ public class TelematicsService {
         System.out.print(".");
     }
 
-    private static void convertToJsonFile(VehicleInfo vi, File f, ObjectMapper mapper) {
+    public static void convertToJsonFile(VehicleInfo vi, File f, ObjectMapper mapper) {
         try (FileWriter fileWriter = new FileWriter(f)) {
             System.out.print(".");
             String json = mapper.writeValueAsString(vi);
